@@ -9,8 +9,8 @@
     "test:smoke": "npx playwright test --grep @smoke",
     "test:headed": "npx playwright test --headed",
     "report": "npx playwright show-report",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,json,yml,md}\"",
     "format:check": "prettier --check \"**/*.{ts,json,yml,md}\"",
     "prepare": "husky"
@@ -40,10 +40,9 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
-    "typescript": "^5.9.3"
-  },
-  "dependencies": {
+    "typescript": "^5.9.3",
     "@eslint/js": "^10.0.1",
     "globals": "^17.4.0"
-  }
+  },
+  "dependencies": {}
 }

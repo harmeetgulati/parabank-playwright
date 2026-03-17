@@ -10,10 +10,18 @@ const BASE = 'https://parabank.parasoft.com/parabank/services/bank';
 export class ParaBankApiClient {
   constructor(private readonly request: APIRequestContext) {}
 
+  private async assertOk(response: Awaited<ReturnType<APIRequestContext['get']>>): Promise<void> {
+    if (!response.ok()) {
+      const body = await response.text();
+      throw new Error(`API ${response.url()} returned ${response.status()}: ${body}`);
+    }
+  }
+
   async loginAndGetCustomerId(username: string, password: string): Promise<number> {
     const response = await this.request.get(`${BASE}/login/${username}/${password}`, {
       headers: { Accept: 'application/json' },
     });
+    await this.assertOk(response);
     const body = await response.json();
     return body.id as number;
   }
@@ -22,6 +30,7 @@ export class ParaBankApiClient {
     const response = await this.request.get(`${BASE}/customers/${customerId}/accounts`, {
       headers: { Accept: 'application/json' },
     });
+    await this.assertOk(response);
     return response.json() as Promise<Account[]>;
   }
 
@@ -30,6 +39,7 @@ export class ParaBankApiClient {
       `${BASE}/accounts/${accountId}/transactions/amount/${amount}`,
       { headers: { Accept: 'application/json' } },
     );
+    await this.assertOk(response);
     return response.json() as Promise<Transaction[]>;
   }
 
@@ -37,6 +47,7 @@ export class ParaBankApiClient {
     const response = await this.request.get(`${BASE}/transactions/${transactionId}`, {
       headers: { Accept: 'application/json' },
     });
+    await this.assertOk(response);
     return response.json() as Promise<Transaction>;
   }
 }

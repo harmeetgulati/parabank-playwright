@@ -84,9 +84,8 @@ export const test = base.extend<ParaBankFixtures>({
     const userData = generateUserData();
     const registrationPage = new RegistrationPage(page);
     await registrationPage.goto();
+    // registerUser() waits internally until #leftPanel shows 'Log Out'
     await registrationPage.registerUser(userData);
-    // Confirm registration succeeded before yielding
-    await expect(page.locator('#rightPanel')).toContainText('Welcome');
     await use(userData);
   },
 
@@ -98,13 +97,10 @@ export const test = base.extend<ParaBankFixtures>({
     const userData = generateUserData();
     const registrationPage = new RegistrationPage(page);
     await registrationPage.goto();
+    // registerUser() waits internally until #leftPanel shows 'Log Out'
     await registrationPage.registerUser(userData);
-    // Wait for registration success — either the welcome message or a nav change
-    await expect(page.locator('#leftPanel')).toContainText('Log Out', { timeout: 15_000 });
-
-    // After registration, ParaBank auto-logs in — navigate to home to confirm
+    // Navigate to overview to land on a stable authenticated page
     await page.goto('/parabank/overview.htm');
-    await expect(page.locator('#leftPanel')).toContainText('Log Out');
 
     await use({ userData });
   },

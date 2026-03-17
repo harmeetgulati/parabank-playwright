@@ -152,7 +152,7 @@ jobs:
       # ── Send email report via GitHub Actions email step ────────────────────
 
       - name: Send test report email
-        if: always()
+        if: always() && secrets.MAIL_USERNAME != ''
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com

@@ -41,10 +41,7 @@ export default defineConfig({
     {
       name: 'api',
       testMatch: ['**/tests/api/**/*.spec.ts'],
-      use: {
-        // API tests run headless — no browser needed
-        baseURL: 'https://parabank.parasoft.com/parabank/services/bank',
-      },
+      // API tests use the ParaBankApiClient directly which has its own BASE URL
     },
   ],
 });

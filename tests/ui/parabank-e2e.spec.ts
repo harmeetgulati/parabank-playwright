@@ -209,7 +209,6 @@ test.describe('ParaBank — End-to-End Banking Flow', () => {
     billPayPage,
   }) => {
     const { generateUserData, generateBillPayee } = await import('../../helpers/data-factory');
-    const { faker } = await import('@faker-js/faker');
 
     // Step 1: Navigate
     await page.goto('/parabank/index.htm');
@@ -264,7 +263,5 @@ test.describe('ParaBank — End-to-End Banking Flow', () => {
     // Final: Log out
     await homePage.navLogOut.click();
     await expect(page.locator('#loginPanel')).toBeVisible();
-
-    void faker; // imported for type resolution
   });
 });
