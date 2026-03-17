@@ -1,117 +1,86 @@
 import { test, expect } from '../../fixtures';
 import type { Transaction } from '../../types';
 
-/**
- * API Test Suite — ParaBank REST API
- *
- * Case study requirement:
- * 1. Search transactions using "Find Transactions" API call by amount
- *    for the payment transactions made in the UI test (Step 8 — Bill Pay).
- * 2. Validate the details displayed in the JSON response.
- *
- * These tests use the billPayResult fixture which:
- *   - Creates a user
- *   - Opens a savings account
- *   - Pays a bill of $100.00 from that account
- * Then the API assertion validates the transaction records.
- *
- * @tag @regression @api
- */
-
 test.describe('ParaBank — API: Find Transactions by Amount', () => {
-  test('should find transactions by amount matching the bill payment made in Step 8 @smoke', async ({
-    apiClient,
-    billPayResult,
-  }) => {
-    const { fromAccountId, amount } = billPayResult;
-    const amountNum = parseFloat(amount);
+  test(
+    'should find transactions by amount matching the bill payment',
+    { tag: ['@smoke'] },
+    async ({ apiClient, billPayResult }) => {
+      const { fromAccountId, amount } = billPayResult;
+      const accountId = parseInt(fromAccountId, 10);
+      const amountNum = parseFloat(amount);
 
-    // Find all transactions on the savings account matching the paid amount
-    const transactions: Transaction[] = await apiClient.findTransactionsByAmount(
-      parseInt(fromAccountId, 10),
-      amountNum,
-    );
+      const transactions: Transaction[] = await apiClient.findTransactionsByAmount(
+        accountId,
+        amountNum,
+      );
 
-    // Assertion 1: API returns a valid array (not empty)
-    expect(Array.isArray(transactions)).toBe(true);
-    expect(transactions.length).toBeGreaterThan(0);
+      expect(Array.isArray(transactions)).toBe(true);
+      expect(transactions.length).toBeGreaterThan(0);
 
-    // Assertion 2: Locate the bill pay transaction specifically
-    const billPayTransaction = transactions.find((tx) =>
-      tx.description?.toLowerCase().includes('bill payment'),
-    );
-    expect(
-      billPayTransaction,
-      `Expected a bill payment transaction in the results. Got: ${JSON.stringify(transactions)}`,
-    ).toBeDefined();
+      const billPayTx = transactions.find((tx) =>
+        tx.description?.toLowerCase().includes('bill payment'),
+      );
+      expect(
+        billPayTx,
+        `Expected a bill payment transaction. Got: ${JSON.stringify(transactions)}`,
+      ).toBeDefined();
 
-    // Assertion 3: Validate all required fields exist on the transaction
-    expect(billPayTransaction!.id).toBeDefined();
-    expect(typeof billPayTransaction!.id).toBe('number');
+      expect(typeof billPayTx!.id).toBe('number');
+      expect(billPayTx!.accountId).toBe(accountId);
+      expect(billPayTx!.amount).toBe(amountNum);
+      expect(billPayTx!.type).toBe('Debit'); // bill pay is always a debit
+      expect(typeof billPayTx!.date).toBe('number'); // epoch ms
+      expect(billPayTx!.description).toBeTruthy();
+    },
+  );
 
-    expect(billPayTransaction!.accountId).toBe(parseInt(fromAccountId, 10));
+  test(
+    'should validate full transaction details by transaction ID',
+    { tag: ['@regression'] },
+    async ({ apiClient, billPayResult }) => {
+      const { fromAccountId, amount } = billPayResult;
+      const accountId = parseInt(fromAccountId, 10);
+      const amountNum = parseFloat(amount);
 
-    expect(billPayTransaction!.amount).toBe(amountNum);
+      const transactions = await apiClient.findTransactionsByAmount(accountId, amountNum);
+      const billPayTx = transactions.find((tx) =>
+        tx.description?.toLowerCase().includes('bill payment'),
+      );
+      expect(billPayTx).toBeDefined();
 
-    expect(billPayTransaction!.type).toBe('Debit'); // Bill pay is always a debit
+      const txDetail = await apiClient.getTransactionById(billPayTx!.id);
 
-    expect(billPayTransaction!.date).toBeDefined();
-    expect(typeof billPayTransaction!.date).toBe('number'); // epoch ms
+      expect(txDetail.id).toBe(billPayTx!.id);
+      expect(txDetail.accountId).toBe(accountId);
+      expect(txDetail.amount).toBe(amountNum);
+      expect(txDetail.type).toBe('Debit');
+      expect(txDetail.description).toBeTruthy();
+    },
+  );
 
-    expect(billPayTransaction!.description).toBeTruthy();
-  });
+  test(
+    'should return an array with correct JSON schema for each transaction',
+    { tag: ['@regression'] },
+    async ({ apiClient, billPayResult }) => {
+      const { fromAccountId, amount } = billPayResult;
 
-  test('should validate full transaction details by transaction ID @regression', async ({
-    apiClient,
-    billPayResult,
-  }) => {
-    const { fromAccountId, amount } = billPayResult;
-    const amountNum = parseFloat(amount);
+      const transactions = await apiClient.findTransactionsByAmount(
+        parseInt(fromAccountId, 10),
+        parseFloat(amount),
+      );
 
-    // First get the list of transactions to retrieve the transaction ID
-    const transactions = await apiClient.findTransactionsByAmount(
-      parseInt(fromAccountId, 10),
-      amountNum,
-    );
+      expect(transactions.length).toBeGreaterThan(0);
 
-    const billPayTx = transactions.find((tx) =>
-      tx.description?.toLowerCase().includes('bill payment'),
-    );
-    expect(billPayTx).toBeDefined();
-
-    // Fetch the individual transaction by its ID
-    const txDetail = await apiClient.getTransactionById(billPayTx!.id);
-
-    // Assertion: All fields match what we know from the bill pay
-    expect(txDetail.id).toBe(billPayTx!.id);
-    expect(txDetail.accountId).toBe(parseInt(fromAccountId, 10));
-    expect(txDetail.amount).toBe(amountNum);
-    expect(txDetail.type).toBe('Debit');
-    expect(txDetail.description).toBeTruthy();
-  });
-
-  test('should return an array with correct JSON schema for each transaction @regression', async ({
-    apiClient,
-    billPayResult,
-  }) => {
-    const { fromAccountId, amount } = billPayResult;
-
-    const transactions = await apiClient.findTransactionsByAmount(
-      parseInt(fromAccountId, 10),
-      parseFloat(amount),
-    );
-
-    expect(transactions.length).toBeGreaterThan(0);
-
-    // Schema assertion: every transaction in the list must conform to the expected shape
-    for (const tx of transactions) {
-      expect(typeof tx.id).toBe('number');
-      expect(typeof tx.accountId).toBe('number');
-      expect(typeof tx.amount).toBe('number');
-      expect(['Credit', 'Debit']).toContain(tx.type);
-      expect(typeof tx.date).toBe('number');
-      expect(typeof tx.description).toBe('string');
-      expect(tx.description.length).toBeGreaterThan(0);
-    }
-  });
+      for (const tx of transactions) {
+        expect(typeof tx.id).toBe('number');
+        expect(typeof tx.accountId).toBe('number');
+        expect(typeof tx.amount).toBe('number');
+        expect(['Credit', 'Debit']).toContain(tx.type);
+        expect(typeof tx.date).toBe('number');
+        expect(typeof tx.description).toBe('string');
+        expect(tx.description.length).toBeGreaterThan(0);
+      }
+    },
+  );
 });

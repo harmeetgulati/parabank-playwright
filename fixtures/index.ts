@@ -10,11 +10,7 @@ import { ParaBankApiClient } from '../helpers/api-client';
 import { generateUserData, generateBillPayee } from '../helpers/data-factory';
 import type { UserData } from '../types';
 
-/**
- * Type definitions for all custom fixtures.
- */
 export type ParaBankFixtures = {
-  // Pages
   loginPage: LoginPage;
   registrationPage: RegistrationPage;
   homePage: HomePage;
@@ -22,24 +18,14 @@ export type ParaBankFixtures = {
   openNewAccountPage: OpenNewAccountPage;
   transferFundsPage: TransferFundsPage;
   billPayPage: BillPayPage;
-
-  // API client
   apiClient: ParaBankApiClient;
-
-  // Pre-condition fixtures
   registeredUser: UserData;
   authenticatedPage: { userData: UserData };
   newSavingsAccountId: string;
   billPayResult: { payeeName: string; amount: string; fromAccountId: string };
 };
 
-/**
- * Extended test object with all project-level fixtures baked in.
- * Import this `test` in all spec files instead of '@playwright/test'.
- */
 export const test = base.extend<ParaBankFixtures>({
-  // ── Page Object fixtures ────────────────────────────────────────────────────
-
   loginPage: async ({ page }, use) => {
     await use(new LoginPage(page));
   },
@@ -68,72 +54,43 @@ export const test = base.extend<ParaBankFixtures>({
     await use(new BillPayPage(page));
   },
 
-  // ── API Client fixture ──────────────────────────────────────────────────────
-
   apiClient: async ({ request }, use) => {
     await use(new ParaBankApiClient(request));
   },
 
-  // ── Pre-condition fixtures ──────────────────────────────────────────────────
-
-  /**
-   * Registers a brand-new unique user and yields their credentials.
-   * Each test that needs a fresh user gets one automatically.
-   */
-  registeredUser: async ({ page }, use) => {
+  /** Registers a fresh user; yields credentials. */
+  registeredUser: async ({ registrationPage }, use) => {
     const userData = generateUserData();
-    const registrationPage = new RegistrationPage(page);
     await registrationPage.goto();
-    // registerUser() waits internally until #leftPanel shows 'Log Out'
     await registrationPage.registerUser(userData);
     await use(userData);
   },
 
-  /**
-   * Registers AND logs in a new user, then yields their credentials.
-   * Tests that need an authenticated session use this fixture.
-   */
-  authenticatedPage: async ({ page }, use) => {
+  /** Registers a fresh user and navigates to account overview; yields credentials. */
+  authenticatedPage: async ({ page, registrationPage }, use) => {
     const userData = generateUserData();
-    const registrationPage = new RegistrationPage(page);
     await registrationPage.goto();
-    // registerUser() waits internally until #leftPanel shows 'Log Out'
     await registrationPage.registerUser(userData);
-    // Navigate to overview to land on a stable authenticated page
     await page.goto('/parabank/overview.htm');
-
     await use({ userData });
   },
 
-  /**
-   * Builds on authenticatedPage: opens a Savings account and yields its ID.
-   * Tests that require a specific account ID use this fixture.
-   */
-  newSavingsAccountId: async ({ page, authenticatedPage }, use) => {
-    void authenticatedPage; // consumed for its side-effect (authenticated session)
-    const openAccountPage = new OpenNewAccountPage(page);
-    await openAccountPage.goto();
-
-    // Wait for the from-account dropdown to populate
+  /** Opens a Savings account on an authenticated session; yields the new account ID. */
+  newSavingsAccountId: async ({ page, authenticatedPage, openNewAccountPage }, use) => {
+    void authenticatedPage; // side-effect: ensures authenticated session
+    await openNewAccountPage.goto();
     await page.locator('#fromAccountId option').first().waitFor({ state: 'attached' });
-    const accountId = await openAccountPage.openSavingsAccount();
-
+    const accountId = await openNewAccountPage.openSavingsAccount();
     await expect(page.locator('#newAccountId')).toBeVisible();
     await use(accountId);
   },
 
-  /**
-   * Builds on newSavingsAccountId: performs a bill payment and yields details
-   * for subsequent API assertion.
-   */
-  billPayResult: async ({ page, newSavingsAccountId }, use) => {
-    const billPayPage = new BillPayPage(page);
-    await billPayPage.goto();
-
+  /** Pays a $100 bill from the savings account; yields payment details for API assertions. */
+  billPayResult: async ({ newSavingsAccountId, billPayPage }, use) => {
     const payee = generateBillPayee(newSavingsAccountId);
+    await billPayPage.goto();
     await billPayPage.payBill(payee, newSavingsAccountId);
     await expect(billPayPage.successMessage).toContainText('Bill Payment Complete');
-
     await use({
       payeeName: payee.name,
       amount: payee.amount,

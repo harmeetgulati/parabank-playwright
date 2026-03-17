@@ -18,9 +18,6 @@ export class BillPayPage extends BasePage {
   readonly fromAccountSelect: Locator;
   readonly sendPaymentButton: Locator;
   readonly successMessage: Locator;
-  readonly payeeNameConfirm: Locator;
-  readonly paymentAmountConfirm: Locator;
-  readonly fromAccountConfirm: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -36,9 +33,6 @@ export class BillPayPage extends BasePage {
     this.fromAccountSelect = page.locator('select[name="fromAccountId"]');
     this.sendPaymentButton = page.locator('input[value="Send Payment"]');
     this.successMessage = page.locator('#billpayResult h1.title');
-    this.payeeNameConfirm = page.locator('#billpayResult .ng-binding').nth(0);
-    this.paymentAmountConfirm = page.locator('#billpayResult .ng-binding').nth(1);
-    this.fromAccountConfirm = page.locator('#billpayResult .ng-binding').nth(2);
   }
 
   async goto(): Promise<void> {
@@ -62,13 +56,5 @@ export class BillPayPage extends BasePage {
 
   async getSuccessHeading(): Promise<string> {
     return this.successMessage.innerText();
-  }
-
-  async getPayeeNameFromConfirmation(): Promise<string> {
-    return this.payeeNameConfirm.innerText();
-  }
-
-  async getPaymentAmountFromConfirmation(): Promise<string> {
-    return this.paymentAmountConfirm.innerText();
   }
 }

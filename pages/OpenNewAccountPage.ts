@@ -9,7 +9,6 @@ export class OpenNewAccountPage extends BasePage {
   readonly fromAccountSelect: Locator;
   readonly openAccountButton: Locator;
   readonly newAccountId: Locator;
-  readonly confirmationHeading: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -17,7 +16,6 @@ export class OpenNewAccountPage extends BasePage {
     this.fromAccountSelect = page.locator('#fromAccountId');
     this.openAccountButton = page.locator('input[value="Open New Account"]');
     this.newAccountId = page.locator('#newAccountId');
-    this.confirmationHeading = page.locator('#rightPanel .ng-scope h1.title');
   }
 
   async goto(): Promise<void> {
@@ -25,7 +23,6 @@ export class OpenNewAccountPage extends BasePage {
   }
 
   async openSavingsAccount(fromAccountId?: string): Promise<string> {
-    // Select SAVINGS account type (value "1")
     await this.accountTypeSelect.selectOption({ label: 'SAVINGS' });
 
     if (fromAccountId) {
@@ -33,8 +30,6 @@ export class OpenNewAccountPage extends BasePage {
     }
 
     await this.openAccountButton.click();
-
-    // Wait for the new account ID to appear in the confirmation
     await this.newAccountId.waitFor({ state: 'visible' });
     return this.newAccountId.innerText();
   }
