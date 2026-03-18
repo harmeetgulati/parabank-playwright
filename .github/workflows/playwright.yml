@@ -1,4 +1,5 @@
 name: ParaBank Playwright CI
+run-name: 'ParaBank CI — ${{ github.ref_name }} by @${{ github.actor }}'
 
 on:
   push:
